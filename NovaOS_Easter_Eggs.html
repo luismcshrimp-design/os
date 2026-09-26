@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>macOS Sequoia - Web Desktop</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+
+body, html {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #000;
+}
+
+/* Desktop Canvas */
+#desktop {
+    width: 100vw;
+    height: 100vh;
+    background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2000&auto=format&fit=crop') center/cover no-repeat;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: background-image 0.5s ease-in-out;
+}
+
+/* macOS Top Menu Bar */
+#menubar {
+    height: 30px;
+    background: rgba(20, 20, 25, 0.45);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 100000;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.menu-left, .menu-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.menu-item {
+    cursor: pointer;
+    position: relative;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.apple-logo {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.active-app-title {
+    font-weight: 700;
+}
+
+.menu-icon {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+/* Apple Dropdown Menu */
+.dropdown-menu {
+    position: absolute;
+    top: 32px;
+    left: 8px;
+    background: rgba(30, 30, 35, 0.75);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none;
+    flex-direction: column;
+    width: 220px;
+    z-index: 100001;
+    color: #eee;
+    font-size: 13px;
+}
+
+.dropdown-item {
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.dropdown-item:hover {
+    background: #0a84ff;
+    color: #fff;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 4px 2px;
+}
+
+/* Control Center Menu */
+#control-center-popover {
+    position: absolute;
+    top: 34px;
+    right: 12px;
+    width: 310px;
+    background: rgba(32, 32, 38, 0.65);
+    backdrop-filter: blur(35px) saturate(200%);
+    -webkit-backdrop-filter: blur(35px) saturate(200%);
+    border: 0.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 18px;
+    padding: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+    z-index: 100001;
+}
+
+.cc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.cc-box {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+}
+
+.cc-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 15px;
+}
+
+.cc-icon-btn.active {
+    background: #0a84ff;
+}
+
+.cc-slider-box {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.cc-slider-box input {
+    accent-color: #0a84ff;
+    cursor: pointer;
+}
+
+/* Desktop Icons Area */
+#desktop-icons {
+    position: absolute;
+    top: 40px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.desktop-icon {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    text-align: center;
+}
+
+.desktop-icon img, .desktop-icon .icon-symbol {
+    width: 58px;
+    height: 58px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+    transition: transform 0.15s ease;
+}
+
+.desktop-icon:hover img, .desktop-icon:hover .icon-symbol {
+    transform: scale(1.05);
+}
+
+.desktop-icon span {
+    font-size: 12px;
+    color: #fff;
+    margin-top: 5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.desktop-icon:hover span {
+    background: rgba(10, 132, 255, 0.8);
+}
+
+/* Spotlight Search */
+#spotlight {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 580px;
+    background: rgba(30, 30, 35, 0.75);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 0.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.7);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100002;
+}
+
+.spotlight-input-container {
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    gap: 12px;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.spotlight-input-container input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 20px;
+    width: 100%;
+}
+
+.spotlight-results {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.spotlight-item {
+    padding: 10px 14px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.spotlight-item:hover {
+    background: #0a84ff;
+}
+
+/* macOS Windows */
+.window {
+    position: absolute;
+    width: 720px;
+    height: 480px;
+    background: rgba(26, 26, 32, 0.88);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.55);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 320px;
+    min-height: 220px;
+}
+
+.window.active {
+    border: 0.5px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.7);
+}
+
+/* Window Titlebar (Stoplight buttons) */
+.titlebar {
+    height: 38px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    cursor: move;
+}
+
+.stoplights {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    cursor: pointer;
+    position: relative;
+    box-shadow: inset 0 0 2px rgba(0,0,0,0.3);
+}
+
+.btn-close { background: #ff5f56; border: 0.5px solid #e0443e; }
+.btn-minimize { background: #ffbd2e; border: 0.5px solid #dea123; }
+.btn-maximize { background: #27c93f; border: 0.5px solid #1aab29; }
+
+.window-title {
+    flex: 1;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-right: 52px; /* Offset to center title relative to stoplights */
+    pointer-events: none;
+}
+
+.window-content {
+    flex: 1;
+    overflow: auto;
+    color: #fff;
+    position: relative;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+/* Glass Dock */
+#dock-container {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    z-index: 99999;
+}
+
+#dock {
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(35px) saturate(200%);
+    -webkit-backdrop-filter: blur(35px) saturate(200%);
+    border: 0.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 24px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+}
+
+.dock-item {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dock-item:hover {
+    transform: scale(1.22) translateY(-10px);
+}
+
+.dock-icon {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.dock-dot {
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    bottom: -6px;
+    opacity: 0;
+}
+
+.dock-item.running .dock-dot {
+    opacity: 1;
+}
+
+/* APP SPECIFIC STYLES */
+
+/* 1. Finder */
+.finder-layout {
+    display: flex;
+    height: 100%;
+}
+
+.finder-sidebar {
+    width: 180px;
+    background: rgba(0, 0, 0, 0.25);
+    border-right: 0.5px solid rgba(255, 255, 255, 0.1);
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 12px;
+}
+
+.sidebar-group-title {
+    color: #8e8e93;
+    font-weight: 600;
+    font-size: 11px;
+    padding-left: 8px;
+}
+
+.sidebar-item {
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ddd;
+}
+
+.sidebar-item:hover, .sidebar-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.finder-main {
+    flex: 1;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    grid-auto-rows: max-content;
+    gap: 16px;
+}
+
+.file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.file-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.file-item span {
+    font-size: 36px;
+}
+
+.file-item p {
+    font-size: 12px;
+    margin-top: 6px;
+    word-break: break-word;
+}
+
+/* 2. Safari */
+.safari-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.safari-nav {
+    height: 42px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.safari-address-bar {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.safari-address-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    width: 100%;
+    font-size: 13px;
+}
+
+.safari-view {
+    flex: 1;
+    background: #1e1e24;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+/* 3. Terminal */
+.terminal-container {
+    background: #0d0d11;
+    color: #32d74b;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    height: 100%;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-history {
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+.terminal-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.terminal-line input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #32d74b;
+    font-family: inherit;
+    font-size: inherit;
+    flex: 1;
+}
+
+/* 4. Calculator */
+.calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    height: 100%;
+    background: #1c1c1e;
+    gap: 1px;
+    padding: 10px;
+}
+
+.calc-display {
+    grid-column: span 4;
+    background: transparent;
+    color: #fff;
+    font-size: 42px;
+    font-weight: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 10px 16px;
+}
+
+.calc-btn {
+    border: none;
+    background: #333336;
+    color: #fff;
+    font-size: 20px;
+    border-radius: 50%;
+    margin: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.15s ease;
+}
+
+.calc-btn:active { filter: brightness(1.4); }
+.calc-btn.op { background: #ff9f0a; }
+.calc-btn.top { background: #a5a5a5; color: #000; }
+.calc-btn.zero { grid-column: span 2; border-radius: 30px; justify-content: flex-start; padding-left: 22px; }
+
+/* 5. Notes App */
+.notes-layout {
+    display: flex;
+    height: 100%;
+}
+
+.notes-sidebar {
+    width: 200px;
+    background: rgba(0, 0, 0, 0.3);
+    border-right: 0.5px solid rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.note-item {
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+}
+
+.note-item.active { background: #0a84ff; }
+.note-item h4 { font-size: 13px; margin-bottom: 4px; }
+.note-item p { font-size: 11px; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.notes-editor {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-editor textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 15px;
+    resize: none;
+    line-height: 1.6;
+}
+
+/* 6. Music Player */
+.music-container {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: linear-gradient(180deg, #3a1c40 0%, #120914 100%);
+}
+
+.album-art {
+    width: 180px;
+    height: 180px;
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    margin-bottom: 20px;
+    background: url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=600&auto=format&fit=crop') center/cover;
+}
+
+.track-info {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.track-title { font-size: 18px; font-weight: 700; }
+.track-artist { font-size: 14px; color: #bbb; margin-top: 4px; }
+
+.music-controls {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* 7. System Settings */
+.settings-layout {
+    display: flex;
+    height: 100%;
+}
+
+.settings-sidebar {
+    width: 200px;
+    background: rgba(0, 0, 0, 0.25);
+    border-right: 0.5px solid rgba(255,255,255,0.1);
+    padding: 12px;
+}
+
+.settings-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.wallpaper-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.wallpaper-thumb {
+    height: 100px;
+    border-radius: 10px;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.wallpaper-thumb:hover { border-color: #0a84ff; }
+
+/* Modal / About This Mac */
+#about-mac-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 380px;
+    background: rgba(30, 30, 36, 0.85);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 0.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 18px;
+    padding: 24px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.8);
+    z-index: 100005;
+}
+
+#about-mac-modal .apple-big-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+}
+
+
+/* ================= EASTER EGG STYLES ================= */
+#egg-toast {
+    position: fixed;
+    left: 50%;
+    top: 70px;
+    transform: translateX(-50%) translateY(-12px);
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: rgba(20,20,25,.82);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.22);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 12px 35px rgba(0,0,0,.45);
+    z-index: 999999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    font-size: 13px;
+}
+#egg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+#rainbow-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999998;
+    opacity: 0;
+    background: linear-gradient(120deg,
+        rgba(255,0,0,.18), rgba(255,165,0,.16), rgba(255,255,0,.15),
+        rgba(0,255,0,.15), rgba(0,180,255,.16), rgba(100,0,255,.17),
+        rgba(255,0,200,.16));
+    mix-blend-mode: screen;
+    transition: opacity .3s ease;
+}
+#rainbow-overlay.active { opacity: 1; animation: rainbowPulse 2.5s ease-in-out; }
+@keyframes rainbowPulse {
+    0%,100% { filter: hue-rotate(0deg); opacity: .15; }
+    50% { filter: hue-rotate(90deg); opacity: .75; }
+}
+
+#matrix-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    background: #000;
+    z-index: 999997;
+    overflow: hidden;
+}
+#matrix-canvas { width: 100%; height: 100%; }
+#matrix-close {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    color: #32d74b;
+    font: 14px monospace;
+    cursor: pointer;
+    background: rgba(0,0,0,.6);
+    border: 1px solid rgba(50,215,75,.5);
+    padding: 7px 11px;
+    border-radius: 8px;
+}
+
+.confetti {
+    position: fixed;
+    width: 9px;
+    height: 14px;
+    z-index: 999999;
+    pointer-events: none;
+    animation: confettiFall 1.8s linear forwards;
+}
+@keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+}
+
+body.terminal-mode #desktop {
+    filter: saturate(1.2) hue-rotate(70deg);
+}
+
+</style>
+</head>
+<body>
+
+<div id="egg-toast"></div>
+<div id="rainbow-overlay"></div>
+<div id="matrix-overlay">
+    <canvas id="matrix-canvas"></canvas>
+    <div id="matrix-close" onclick="closeMatrix()">ESC / CLICK TO EXIT</div>
+</div>
+
+
+<div id="desktop">
+
+    <!-- TOP MENU BAR -->
+    <div id="menubar">
+        <div class="menu-left">
+            <span class="menu-item apple-logo" id="apple-secret" onclick="handleAppleClick(event)"></span>
+            <span class="menu-item active-app-title" id="active-app-name">Finder</span>
+            <span class="menu-item">File</span>
+            <span class="menu-item">Edit</span>
+            <span class="menu-item">View</span>
+            <span class="menu-item">Go</span>
+            <span class="menu-item">Window</span>
+            <span class="menu-item">Help</span>
+        </div>
+
+        <div class="menu-right">
+            <span class="menu-item menu-icon" onclick="toggleSpotlight()">🔍</span>
+            <span class="menu-item menu-icon" onclick="toggleControlCenter(event)">🎛️</span>
+            <span class="menu-item" id="clock-time" title="There may be more to the clock...">Wed Sep 23 19:00</span>
+        </div>
+    </div>
+
+    <!-- APPLE DROPDOWN MENU -->
+    <div class="dropdown-menu" id="apple-dropdown">
+        <div class="dropdown-item" onclick="openAboutMac()">About This Mac</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="openApp('settings')">System Settings...</div>
+        <div class="dropdown-item" onclick="openApp('safari')">App Store...</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" id="fullscreen-menu-item" onclick="toggleFullscreen()">Enter Full Screen</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="toggleSpotlight()">Spotlight Search</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="location.reload()">Restart...</div>
+        <div class="dropdown-item" onclick="alert('Shutting down NovaOS...')">Shut Down...</div>
+    </div>
+
+    <!-- CONTROL CENTER POPOVER -->
+    <div id="control-center-popover">
+        <div class="cc-grid">
+            <div class="cc-box">
+                <div class="cc-icon-btn active">📡</div>
+                <div>
+                    <b>Wi-Fi</b>
+                    <div style="font-size: 10px; color: #aaa;">Home-5G</div>
+                </div>
+            </div>
+            <div class="cc-box">
+                <div class="cc-icon-btn active">📶</div>
+                <div>
+                    <b>Bluetooth</b>
+                    <div style="font-size: 10px; color: #aaa;">On</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cc-slider-box">
+            <span>Display Brightness</span>
+            <input type="range" min="30" max="100" value="100" oninput="document.getElementById('desktop').style.filter = `brightness(${this.value}%)`">
+        </div>
+
+        <div class="cc-slider-box">
+            <span>Sound Volume</span>
+            <input type="range" min="0" max="100" value="80">
+        </div>
+    </div>
+
+    <!-- SPOTLIGHT OVERLAY -->
+    <div id="spotlight">
+        <div class="spotlight-input-container">
+            <span>🔍</span>
+            <input type="text" id="spotlight-input" placeholder="Spotlight Search" onkeyup="filterSpotlight(this.value)">
+        </div>
+        <div class="spotlight-results" id="spotlight-results">
+            <div class="spotlight-item" onclick="openApp('finder')">📁 Finder</div>
+            <div class="spotlight-item" onclick="openApp('safari')">🌐 Safari</div>
+            <div class="spotlight-item" onclick="openApp('terminal')">💻 Terminal</div>
+            <div class="spotlight-item" onclick="openApp('calculator')">🧮 Calculator</div>
+            <div class="spotlight-item" onclick="openApp('notes')">📝 Notes</div>
+            <div class="spotlight-item" onclick="openApp('music')">🎵 Music</div>
+            <div class="spotlight-item" onclick="openApp('settings')">⚙️ System Settings</div>
+        </div>
+    </div>
+
+    <!-- DESKTOP SHORTCUT ICONS -->
+    <div id="desktop-icons">
+        <div class="desktop-icon" onclick="openApp('finder')">
+            <div class="icon-symbol">🖥️</div>
+            <span>Macintosh HD</span>
+        </div>
+        <div class="desktop-icon" onclick="openApp('notes')">
+            <div class="icon-symbol">📄</div>
+            <span>ReadMe.txt</span>
+        </div>
+    </div>
+
+
+    <!-- ================= WINDOWS ================= -->
+
+    <!-- FINDER WINDOW -->
+    <div class="window" id="win-finder" style="top: 80px; left: 100px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('finder')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('finder')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">Finder</div>
+        </div>
+        <div class="window-content finder-layout">
+            <div class="finder-sidebar">
+                <span class="sidebar-group-title">Favorites</span>
+                <div class="sidebar-item active">📁 Recents</div>
+                <div class="sidebar-item">💻 Applications</div>
+                <div class="sidebar-item">📄 Documents</div>
+                <div class="sidebar-item">⬇️ Downloads</div>
+                <div class="sidebar-item">🖼️ Pictures</div>
+            </div>
+            <div class="finder-main">
+                <div class="file-item" onclick="openApp('notes')">
+                    <span>📄</span>
+                    <p>ReadMe.txt</p>
+                </div>
+                <div class="file-item">
+                    <span>📊</span>
+                    <p>Budget2026.xlsx</p>
+                </div>
+                <div class="file-item">
+                    <span>🖼️</span>
+                    <p>Wallpaper.png</p>
+                </div>
+                <div class="file-item">
+                    <span>🎵</span>
+                    <p>DemoTrack.mp3</p>
+                </div>
+                <div class="file-item" ondblclick="secretFileEgg()">
+                    <span>🪄</span>
+                    <p>.secret</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAFARI WINDOW -->
+    <div class="window" id="win-safari" style="top: 100px; left: 160px; width: 800px; height: 520px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('safari')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('safari')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">Safari</div>
+        </div>
+        <div class="window-content safari-container">
+            <div class="safari-nav">
+                <div class="safari-address-bar">
+                    <span>🔒</span>
+                    <input type="text" value="https://apple.com" onkeydown="safariNavigate(event, this.value)">
+                </div>
+            </div>
+            <div class="safari-view" id="safari-content">
+                <div style="text-align: center; padding-top: 40px;">
+                    <h1 style="font-size: 36px; margin-bottom: 12px; font-weight: 700;">macOS Sequoia</h1>
+                    <p style="color: #aaa; font-size: 18px; max-width: 500px; margin: 0 auto 24px auto;">
+                        Power meets elegance in the ultimate desktop experience.
+                    </p>
+                    
+<div style="margin: 28px auto 0; max-width: 500px; color:#777; font-size:11px;">
+    Hint: try typing <b>about:sequoia</b> or <b>konami</b> into the address bar.
+</div>
+                    <button style="background: #0a84ff; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; font-size: 15px; cursor: pointer;">
+                        Explore Features
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TERMINAL WINDOW -->
+    <div class="window" id="win-terminal" style="top: 140px; left: 220px; width: 640px; height: 400px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('terminal')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('terminal')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">Terminal — zsh</div>
+        </div>
+        <div class="window-content terminal-container" onclick="document.getElementById('term-cmd').focus()">
+            <div class="terminal-history" id="term-history">
+Last login: Wed Sep 23 19:00:00 on tty1
+Type "neofetch" or "help" to begin.
+            </div>
+            <div class="terminal-line">
+                <span>imac@macbook-pro ~ %</span>
+                <input type="text" id="term-cmd" autocomplete="off" onkeydown="handleTerminal(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- CALCULATOR WINDOW -->
+    <div class="window" id="win-calculator" style="top: 120px; left: 300px; width: 280px; height: 380px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('calculator')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('calculator')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">Calculator</div>
+        </div>
+        <div class="window-content">
+            <div class="calc-grid">
+                <div class="calc-display" id="calc-screen">0</div>
+                <button class="calc-btn top" onclick="calcAction('C')">C</button>
+                <button class="calc-btn top" onclick="calcAction('+/-')">±</button>
+                <button class="calc-btn top" onclick="calcAction('%')">%</button>
+                <button class="calc-btn op" onclick="calcAction('/')">÷</button>
+                <button class="calc-btn" onclick="calcAction('7')">7</button>
+                <button class="calc-btn" onclick="calcAction('8')">8</button>
+                <button class="calc-btn" onclick="calcAction('9')">9</button>
+                <button class="calc-btn op" onclick="calcAction('*')">×</button>
+                <button class="calc-btn" onclick="calcAction('4')">4</button>
+                <button class="calc-btn" onclick="calcAction('5')">5</button>
+                <button class="calc-btn" onclick="calcAction('6')">6</button>
+                <button class="calc-btn op" onclick="calcAction('-')">-</button>
+                <button class="calc-btn" onclick="calcAction('1')">1</button>
+                <button class="calc-btn" onclick="calcAction('2')">2</button>
+                <button class="calc-btn" onclick="calcAction('3')">3</button>
+                <button class="calc-btn op" onclick="calcAction('+')">+</button>
+                <button class="calc-btn zero" onclick="calcAction('0')">0</button>
+                <button class="calc-btn" onclick="calcAction('.')">.</button>
+                <button class="calc-btn op" onclick="calcAction('=')">=</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTES WINDOW -->
+    <div class="window" id="win-notes" style="top: 150px; left: 350px; width: 600px; height: 400px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('notes')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('notes')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">Notes</div>
+        </div>
+        <div class="window-content notes-layout">
+            <div class="notes-sidebar">
+                <div class="note-item active">
+                    <h4>Welcome Note</h4>
+                    <p>Welcome to NovaOS iMac Edition!</p>
+                </div>
+            </div>
+            <div class="notes-editor">
+                <textarea placeholder="Type your note here...">Welcome to NovaOS iMac Edition!
+
+Built completely in HTML, CSS, and pure JavaScript.
+
+Enjoy the macOS experience directly inside your browser.</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- MUSIC WINDOW -->
+    <div class="window" id="win-music" style="top: 180px; left: 400px; width: 340px; height: 420px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('music')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('music')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">Music</div>
+        </div>
+        <div class="window-content music-container">
+            <div class="album-art"></div>
+            <div class="track-info">
+                <div class="track-title">Midnight City</div>
+                <div class="track-artist">M83 — Synthwave Radio</div>
+            </div>
+            <div class="music-controls">
+                <span>⏮</span>
+                <span onclick="togglePlay(this)">▶️</span>
+                <span>⏭</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS WINDOW -->
+    <div class="window" id="win-settings" style="top: 110px; left: 180px; width: 680px; height: 450px;">
+        <div class="titlebar">
+            <div class="stoplights">
+                <span class="btn-dot btn-close" onclick="closeApp('settings')"></span>
+                <span class="btn-dot btn-minimize" onclick="closeApp('settings')"></span>
+                <span class="btn-dot btn-maximize"></span>
+            </div>
+            <div class="window-title">System Settings</div>
+        </div>
+        <div class="window-content settings-layout">
+            <div class="settings-sidebar">
+                <div class="sidebar-item active">🖼️ Wallpaper</div>
+                <div class="sidebar-item">🖥️ Displays</div>
+                <div class="sidebar-item">🔒 Lock Screen</div>
+                <div class="sidebar-item">🔋 Battery</div>
+            </div>
+            <div class="settings-content">
+                <h2>Desktop Wallpaper</h2>
+                <p style="font-size: 13px; color: #aaa; margin-top: 4px;">Choose a wallpaper background for your desktop.</p>
+                <div class="wallpaper-grid">
+                    <div class="wallpaper-thumb" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                    <div class="wallpaper-thumb" style="background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=600&auto=format&fit=crop')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                    <div class="wallpaper-thumb" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600&auto=format&fit=crop')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                    <div class="wallpaper-thumb" style="background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600&auto=format&fit=crop')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ABOUT THIS MAC MODAL -->
+    <div id="about-mac-modal">
+        <div class="apple-big-icon"></div>
+        <h2 style="font-size: 22px; font-weight: 700;">iMac 24"</h2>
+        <p style="color: #aaa; font-size: 13px; margin-top: 4px;">Apple M3 Max Chip</p>
+        <div style="margin-top: 20px; font-size: 12px; line-height: 1.8; color: #ddd; text-align: left; width: 100%; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px;">
+            <div><b>Memory:</b> 36 GB Unified Memory</div>
+            <div><b>macOS:</b> Sequoia 15.0</div>
+            <div><b>Serial Number:</b> C02XG101MD6M</div>
+        </div>
+        <button style="margin-top: 20px; background: rgba(255,255,255,0.15); color: #fff; border: none; padding: 6px 18px; border-radius: 12px; cursor: pointer;" onclick="document.getElementById('about-mac-modal').style.display = 'none'">
+            Close
+        </button>
+    </div>
+
+
+    <!-- DOCK -->
+    <div id="dock-container">
+        <div id="dock">
+            <div class="dock-item" id="dock-finder" onclick="openApp('finder')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #1d92ff 0%, #005bc4 100%);">📁</div>
+                <div class="dock-dot"></div>
+            </div>
+            <div class="dock-item" id="dock-safari" onclick="openApp('safari')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #ffffff 0%, #d8d8d8 100%);">🧭</div>
+                <div class="dock-dot"></div>
+            </div>
+            <div class="dock-item" id="dock-terminal" onclick="openApp('terminal')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #3a3a3c 0%, #1c1c1e 100%);">💻</div>
+                <div class="dock-dot"></div>
+            </div>
+            <div class="dock-item" id="dock-calculator" onclick="openApp('calculator')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #ff9f0a 0%, #cc7a00 100%);">🧮</div>
+                <div class="dock-dot"></div>
+            </div>
+            <div class="dock-item" id="dock-notes" onclick="openApp('notes')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #ffd60a 0%, #d4b200 100%);">📝</div>
+                <div class="dock-dot"></div>
+            </div>
+            <div class="dock-item" id="dock-music" onclick="openApp('music')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #ff3b30 0%, #d70015 100%);">🎵</div>
+                <div class="dock-dot"></div>
+            </div>
+            <div class="dock-item" id="dock-settings" onclick="openApp('settings')">
+                <div class="dock-icon" style="background: linear-gradient(180deg, #8e8e93 0%, #636366 100%);">⚙️</div>
+                <div class="dock-dot"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let zIndexCounter = 100;
+
+// Window Bring to Front & Dragging
+document.querySelectorAll('.window').forEach(win => {
+    win.addEventListener('mousedown', () => {
+        focusWindow(win);
+    });
+
+    const titlebar = win.querySelector('.titlebar');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    titlebar.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = win.offsetLeft;
+        initialTop = win.offsetTop;
+
+        function onMouseMove(e) {
+            if (isDragging) {
+                win.style.left = (initialLeft + (e.clientX - startX)) + 'px';
+                win.style.top = (initialTop + (e.clientY - startY)) + 'px';
+            }
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+});
+
+function focusWindow(win) {
+    zIndexCounter++;
+    win.style.zIndex = zIndexCounter;
+    document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+    win.classList.add('active');
+
+    // Update Top Menubar App Title
+    const appName = win.querySelector('.window-title').textContent;
+    document.getElementById('active-app-name').textContent = appName;
+}
+
+// App Open/Close Management
+function openApp(appId) {
+    const win = document.getElementById(`win-${appId}`);
+    const dockItem = document.getElementById(`dock-${appId}`);
+
+    if (win) {
+        const isOpening = getComputedStyle(win).display === 'none';
+        win.style.display = 'flex';
+        if (isOpening && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            win.animate(
+                [
+                    { opacity: 0, transform: 'scale(0.97) translateY(8px)' },
+                    { opacity: 1, transform: 'scale(1) translateY(0)' }
+                ],
+                { duration: 180, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+            );
+        }
+        focusWindow(win);
+        if (dockItem) dockItem.classList.add('running');
+    }
+
+    // Hide overlays
+    document.getElementById('spotlight').style.display = 'none';
+    document.getElementById('apple-dropdown').style.display = 'none';
+    document.getElementById('control-center-popover').style.display = 'none';
+}
+
+function toggleFullscreen() {
+    const desktop = document.getElementById('desktop');
+    if (document.fullscreenElement) {
+        document.exitFullscreen();
+    } else if (desktop.requestFullscreen) {
+        desktop.requestFullscreen();
+    }
+    document.getElementById('apple-dropdown').style.display = 'none';
+}
+
+document.addEventListener('fullscreenchange', () => {
+    const menuItem = document.getElementById('fullscreen-menu-item');
+    menuItem.textContent = document.fullscreenElement ? 'Exit Full Screen' : 'Enter Full Screen';
+});
+
+function closeApp(appId) {
+    const win = document.getElementById(`win-${appId}`);
+    const dockItem = document.getElementById(`dock-${appId}`);
+
+    if (win) win.style.display = 'none';
+    if (dockItem) dockItem.classList.remove('running');
+}
+
+// Top Menubar Time Update
+function updateClock() {
+    const now = new Date();
+    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    document.getElementById('clock-time').textContent = now.toLocaleDateString('en-US', options).replace(',', '');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Menubar Dropdowns
+function toggleDropdown(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('apple-dropdown');
+    dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById('control-center-popover').style.display = 'none';
+}
+
+function toggleControlCenter(e) {
+    e.stopPropagation();
+    const popover = document.getElementById('control-center-popover');
+    popover.style.display = popover.style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById('apple-dropdown').style.display = 'none';
+}
+
+document.addEventListener('click', () => {
+    document.getElementById('apple-dropdown').style.display = 'none';
+    document.getElementById('control-center-popover').style.display = 'none';
+});
+
+// Spotlight Toggle
+function toggleSpotlight() {
+    const spot = document.getElementById('spotlight');
+    const isVisible = spot.style.display === 'flex';
+    spot.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) {
+        document.getElementById('spotlight-input').value = '';
+        document.getElementById('spotlight-input').focus();
+    }
+}
+
+function filterSpotlight(val) {
+    const items = document.querySelectorAll('.spotlight-item');
+    items.forEach(item => {
+        if (item.textContent.toLowerCase().includes(val.toLowerCase())) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// About This Mac
+function openAboutMac() {
+    document.getElementById('about-mac-modal').style.display = 'flex';
+}
+
+// Safari Navigation Simulation
+function safariNavigate(e, url) {
+    if (e.key === 'Enter') {
+        const view = document.getElementById('safari-content');
+        view.innerHTML = `
+            <div style="padding: 20px;">
+                <h2 style="color: #0a84ff; font-size: 24px; margin-bottom: 10px;">Simulated Webpage</h2>
+                <p style="color: #ddd;">Loaded: <b>${url}</b></p>
+                <div style="margin-top: 20px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    This is a functional web browser sandbox in NovaOS Sequoia.
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Terminal Interactive Logic
+function handleTerminal(e) {
+    if (e.key === 'Enter') {
+        const input = e.target;
+        const cmd = input.value.trim();
+        const history = document.getElementById('term-history');
+        let output = '';
+
+        if (cmd.toLowerCase() === 'neofetch') {
+            output = `
+   macOS Sequoia 15.0
+  --------------------
+  OS: macOS Sequoia 15.0 x86_64
+  Host: iMac 24-inch M3
+  Kernel: Darwin 24.0.0
+  Uptime: 4 hours, 20 mins
+  Shell: zsh 5.9
+  Memory: 8240MiB / 36864MiB
+            `;
+        } else if (cmd.toLowerCase() === 'help') {
+            output = 'Commands: neofetch, help, clear, date, whoami, echo [msg]';
+        } else if (cmd.toLowerCase() === 'date') {
+            output = new Date().toString();
+        } else if (cmd.toLowerCase() === 'whoami') {
+            output = 'imac_user';
+        } else if (cmd.toLowerCase() === 'clear') {
+            history.textContent = '';
+            input.value = '';
+            return;
+        } else if (cmd.toLowerCase().startsWith('echo ')) {
+            output = cmd.substring(5);
+        } else if (cmd !== '') {
+            output = `zsh: command not found: ${cmd}`;
+        }
+
+        history.textContent += `\nimac@macbook-pro ~ % ${cmd}\n${output}`;
+        input.value = '';
+        const container = input.closest('.terminal-container');
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// Calculator Logic
+let calcVal = '0';
+function calcAction(btn) {
+    const screen = document.getElementById('calc-screen');
+
+    if (btn === 'C') {
+        calcVal = '0';
+    } else if (btn === '=') {
+        try {
+            calcVal = eval(calcVal.replace(/×/g, '*').replace(/÷/g, '/')).toString();
+        } catch {
+            calcVal = 'Error';
+        }
+    } else {
+        if (calcVal === '0') calcVal = btn;
+        else calcVal += btn;
+    }
+    screen.textContent = calcVal;
+}
+
+// Music Play Toggle
+function togglePlay(btn) {
+    if (btn.textContent === '▶️') {
+        btn.textContent = '⏸️';
+    } else {
+        btn.textContent = '▶️';
+    }
+}
+
+// Wallpaper Selector
+function setWallpaper(bgImage) {
+    document.getElementById('desktop').style.backgroundImage = bgImage;
+}
+
+
+// ================= EASTER EGGS =================
+let appleClicks = 0;
+let appleClickTimer = null;
+let konamiIndex = 0;
+let matrixAnimation = null;
+
+const KONAMI = [
+    'ArrowUp','ArrowUp','ArrowDown','ArrowDown',
+    'ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'
+];
+
+function eggToast(message) {
+    const toast = document.getElementById('egg-toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(eggToast.timer);
+    eggToast.timer = setTimeout(() => toast.classList.remove('show'), 2600);
+}
+
+function handleAppleClick(e) {
+    e.stopPropagation();
+    toggleDropdown(e);
+    appleClicks++;
+    clearTimeout(appleClickTimer);
+    appleClickTimer = setTimeout(() => appleClicks = 0, 1300);
+
+    if (appleClicks === 3) {
+        eggToast('🍎 You found the Apple secret!');
+    }
+    if (appleClicks >= 5) {
+        appleClicks = 0;
+        launchConfetti();
+        eggToast('✨ Think different.');
+    }
+}
+
+// Secret clock: click it 7 times quickly.
+let clockClicks = 0;
+let clockTimer = null;
+document.getElementById('clock-time').addEventListener('click', function(e) {
+    e.stopPropagation();
+    clockClicks++;
+    clearTimeout(clockTimer);
+    clockTimer = setTimeout(() => clockClicks = 0, 1400);
+    if (clockClicks === 7) {
+        clockClicks = 0;
+        document.getElementById('rainbow-overlay').classList.add('active');
+        launchConfetti(80);
+        eggToast('🌈 Time itself has been hacked.');
+        setTimeout(() => document.getElementById('rainbow-overlay').classList.remove('active'), 2800);
+    }
+});
+
+// Konami Code
+document.addEventListener('keydown', (e) => {
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const expected = KONAMI[konamiIndex];
+    if (key === expected) {
+        konamiIndex++;
+        if (konamiIndex === KONAMI.length) {
+            konamiIndex = 0;
+            launchConfetti(120);
+            eggToast('🎮 KONAMI CODE ACTIVATED!');
+            document.body.animate(
+                [{ transform:'scale(1)' }, { transform:'scale(.985)' }, { transform:'scale(1)' }],
+                { duration: 450 }
+            );
+        }
+    } else if (key !== 'Shift') {
+        konamiIndex = 0;
+    }
+
+    if (e.key === 'Escape') {
+        closeMatrix();
+    }
+});
+
+// Terminal secrets
+const originalTerminalHandler = handleTerminal;
+handleTerminal = function(e) {
+    if (e.key === 'Enter') {
+        const input = e.target;
+        const cmd = input.value.trim().toLowerCase();
+
+        if (cmd === 'matrix' || cmd === 'sudo matrix') {
+            input.value = '';
+            openMatrix();
+            return;
+        }
+        if (cmd === 'cowsay') {
+            const history = document.getElementById('term-history');
+            history.textContent += `
+imac@macbook-pro ~ % cowsay
+ ______________________________
+< Hello from NovaOS! 🐄       >
+ ------------------------------
+        \\   ^__^
+         \\  (oo)\\_______
+            (__)\\       )\\/\\
+                ||----w |
+                ||     ||
+`;
+            input.value = '';
+            return;
+        }
+        if (cmd === 'secret') {
+            eggToast('🕵️ Access granted. There is definitely nothing suspicious here.');
+            input.value = '';
+            return;
+        }
+        if (cmd === 'konami') {
+            launchConfetti(100);
+            eggToast('🎮 Up Up Down Down Left Right Left Right B A');
+            input.value = '';
+            return;
+        }
+        originalTerminalHandler(e);
+    }
+};
+
+// Secret Finder file
+function secretFileEgg() {
+    eggToast('📂 .secret opened: "You were never supposed to find this."');
+    launchConfetti(35);
+}
+
+// Secret calculator result
+const originalCalcAction = calcAction;
+calcAction = function(btn) {
+    originalCalcAction(btn);
+    const screen = document.getElementById('calc-screen');
+    if (screen.textContent === '42') {
+        eggToast('🌌 The answer to life, the universe, and everything.');
+    }
+    if (screen.textContent === '80085') {
+        eggToast('😏 Nice.');
+    }
+};
+
+// Secret Safari pages
+const originalSafariNavigate = safariNavigate;
+safariNavigate = function(e, url) {
+    if (e.key === 'Enter') {
+        const clean = url.trim().toLowerCase();
+        const view = document.getElementById('safari-content');
+
+        if (clean === 'about:sequoia') {
+            e.preventDefault();
+            view.innerHTML = `
+                <div style="text-align:center;padding:55px 20px;">
+                    <div style="font-size:64px;">🌲</div>
+                    <h1 style="font-size:34px;margin:12px 0;">Project Sequoia</h1>
+                    <p style="color:#aaa;">A secret page hidden inside NovaOS.</p>
+                    <p style="margin-top:20px;color:#0a84ff;">Status: ridiculously cool.</p>
+                </div>`;
+            eggToast('🌲 Secret page discovered!');
+            return;
+        }
+
+        if (clean === 'konami') {
+            e.preventDefault();
+            launchConfetti(100);
+            eggToast('🎮 Safari knows the code.');
+            return;
+        }
+
+        originalSafariNavigate(e, url);
+    }
+};
+
+// Double-click desktop background for "developer mode"
+let desktopClicks = 0;
+let desktopTimer = null;
+document.getElementById('desktop').addEventListener('dblclick', (e) => {
+    if (e.target.closest('.window, #dock-container, #menubar, #spotlight, #control-center-popover, .desktop-icon')) return;
+    document.body.classList.toggle('terminal-mode');
+    eggToast(document.body.classList.contains('terminal-mode')
+        ? '🧪 Developer Mode ON'
+        : '🧪 Developer Mode OFF');
+});
+
+// Confetti
+function launchConfetti(amount = 55) {
+    const pieces = ['🎉','✨','⭐','🍎','💫','🪩'];
+    for (let i = 0; i < amount; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        el.textContent = pieces[Math.floor(Math.random() * pieces.length)];
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.top = (-10 - Math.random() * 20) + 'px';
+        el.style.fontSize = (10 + Math.random() * 13) + 'px';
+        el.style.animationDelay = (Math.random() * .5) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 2400);
+    }
+}
+
+// Matrix easter egg
+function openMatrix() {
+    const overlay = document.getElementById('matrix-overlay');
+    const canvas = document.getElementById('matrix-canvas');
+    overlay.style.display = 'block';
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const chars = '01アイウエオカキクケコサシスセソNOVAOS';
+    const fontSize = 16;
+    const columns = Math.ceil(canvas.width / fontSize);
+    const drops = Array(columns).fill(1);
+
+    clearInterval(matrixAnimation);
+    matrixAnimation = setInterval(() => {
+        ctx.fillStyle = 'rgba(0,0,0,0.07)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#32d74b';
+        ctx.font = fontSize + 'px monospace';
+
+        for (let i = 0; i < drops.length; i++) {
+            const char = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > canvas.height && Math.random() > .975) drops[i] = 0;
+            drops[i]++;
+        }
+    }, 35);
+    eggToast('💻 Matrix mode. Press ESC to escape.');
+}
+
+function closeMatrix() {
+    const overlay = document.getElementById('matrix-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    clearInterval(matrixAnimation);
+}
+
+</script>
+</body>
+</html>
+                                                                                                        
